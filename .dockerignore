@@ -1,0 +1,8 @@
+node_modules
+dist
+.git
+.sesion-secreto
+*.log
+.vscode
+.idea
+.DS_Store

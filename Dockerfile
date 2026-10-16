@@ -1,0 +1,26 @@
+FROM node:22-alpine AS build
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+FROM node:22-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY package.json package-lock.json ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/public ./public
+COPY --from=build /app/index.html ./index.html
+COPY --from=build /app/vite.config.ts ./vite.config.ts
+COPY --from=build /app/server ./server
+COPY --from=build /app/tsconfig.json ./tsconfig.json
+COPY --from=build /app/tsconfig.node.json ./tsconfig.node.json
+COPY --from=build /app/tsconfig.app.json ./tsconfig.app.json
+
+EXPOSE 4731
+CMD ["npm", "start"]

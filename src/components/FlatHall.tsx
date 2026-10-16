@@ -49,6 +49,16 @@ export function FlatHall({ fallback = false }: { fallback?: boolean }) {
           <MuseumFigure artwork={artwork} />
         </section>
       ))}
+      <p className="px-6 py-10 text-center">
+        <a
+          className="font-sans text-[10px] tracking-[0.22em] text-ivory/50 uppercase hover:text-brass"
+          href="https://nestorcarvacho.pythonanywhere.com/"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Powered by Néstor Carvacho
+        </a>
+      </p>
     </div>
   )
 }

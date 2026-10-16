@@ -122,7 +122,7 @@ function Experience() {
       if (introRef.current === "open" || roomRef.current) return
       const unit =
         event.deltaMode === 1 ? event.deltaY * 16 : event.deltaMode === 2 ? event.deltaY * window.innerHeight : event.deltaY
-      nudge(unit * wheelMeters)
+      nudge(-unit * wheelMeters)
     }
 
     const onKey = (event: KeyboardEvent) => {
@@ -178,7 +178,7 @@ function Experience() {
       const y = event.touches[0]?.clientY
       if (y == null || touchY.current == null) return
       event.preventDefault()
-      const delta = touchY.current - y
+      const delta = y - touchY.current
       touchY.current = y
       nudge(delta * 0.017)
     }
