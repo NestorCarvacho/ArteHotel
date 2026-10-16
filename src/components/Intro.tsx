@@ -1,4 +1,4 @@
-import { exhibition, artworks } from "../data/artworks"
+import { useCatalog } from "../data/catalog"
 
 type IntroProps = {
   leaving: boolean
@@ -6,6 +6,7 @@ type IntroProps = {
 }
 
 export function Intro({ leaving, onEnter }: IntroProps) {
+  const { exhibition, artworks } = useCatalog()
   const hasSamples = artworks.some((artwork) => artwork.sample)
 
   return (
@@ -24,6 +25,9 @@ export function Intro({ leaving, onEnter }: IntroProps) {
             {exhibition.sampleNote}
           </p>
         )}
+        <a className="text-btn mt-6 inline-block" href="/mantener">
+          Mantener
+        </a>
       </div>
     </div>
   )

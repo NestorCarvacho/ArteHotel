@@ -1,5 +1,5 @@
 import { useState } from "react"
-import type { Artwork } from "../data/artworks"
+import type { Artwork } from "../data/catalog"
 
 type Status = "loading" | "ready" | "error"
 
@@ -9,13 +9,17 @@ export function MuseumFigure({ artwork }: { artwork: Artwork }) {
   return (
     <figure className="appear grid w-fit max-w-full justify-items-center">
       <div className="mat relative">
-        {status === "loading" && (
+        {artwork.src && status === "loading" && (
           <div
             className="absolute inset-[0.9rem] animate-pulse bg-[#e4d8c6]"
             style={{ aspectRatio: `${artwork.width} / ${artwork.height}` }}
           />
         )}
-        {status === "error" ? (
+        {!artwork.src ? (
+          <div className="grid h-[42vh] w-[min(72vw,380px)] place-items-center bg-[#e7dccb] px-6 text-center text-[#2a241c]">
+            <p className="font-serif text-2xl italic">Esta habitación todavía no tiene foto.</p>
+          </div>
+        ) : status === "error" ? (
           <div className="grid h-[42vh] w-[min(72vw,380px)] place-items-center bg-[#e7dccb] px-6 text-center text-[#2a241c]">
             <div>
               <p className="font-serif text-2xl italic">Esta pieza no abrió</p>

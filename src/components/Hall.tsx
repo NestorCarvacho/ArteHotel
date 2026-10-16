@@ -1,7 +1,7 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { useEffect, useMemo, useRef } from "react"
 import * as THREE from "three"
-import { artworks } from "../data/artworks"
+import { useCatalog } from "../data/catalog"
 import { HALL, hallExtent } from "../lib/hall"
 import { usePrefersReducedMotion } from "../lib/motion"
 import { createCarpetTexture, createWoodTexture } from "../lib/textures"
@@ -38,6 +38,7 @@ function Walker() {
 }
 
 function Corridor({ onChoose }: { onChoose: (index: number) => void }) {
+  const { artworks } = useCatalog()
   const count = artworks.length
   const extent = useMemo(() => hallExtent(count), [count])
   const maps = useMemo(() => {

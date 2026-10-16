@@ -117,13 +117,23 @@
   transition: background 0.2s ease, color 0.2s ease;
 }
 
+.brass-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .brass-btn:active {
   background: var(--color-brass);
   color: var(--color-ink);
 }
 
+.brass-btn:disabled:active {
+  background: transparent;
+  color: var(--color-ivory);
+}
+
 @media (hover: hover) {
-  .brass-btn:hover {
+  .brass-btn:hover:not(:disabled) {
     background: var(--color-brass);
     color: var(--color-ink);
   }
@@ -344,4 +354,108 @@
     animation: none;
     transition: none;
   }
+}
+
+.keeper {
+  height: 100%;
+  overflow: hidden;
+  background: #100e0c;
+  color: var(--color-ivory);
+}
+
+.keeper-card {
+  display: grid;
+  gap: 1.25rem;
+  border: 1px solid rgba(244, 239, 230, 0.12);
+  background: #171410;
+  padding: 1rem;
+}
+
+@media (min-width: 800px) {
+  .keeper-card {
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 1.75rem;
+    padding: 1.25rem;
+  }
+}
+
+.keeper-photo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: #2a241e;
+}
+
+.keeper-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.keeper-photo.is-over {
+  outline: 1px solid var(--color-brass);
+  outline-offset: -1px;
+}
+
+.keeper-upload {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--color-brass) 80%, transparent);
+  background: rgba(16, 14, 12, 0.82);
+  color: var(--color-ivory);
+  padding: 0.55rem 0.7rem;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.keeper-upload input {
+  display: none;
+}
+
+.keeper-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.keeper-field span {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-brass);
+}
+
+.keeper-field input,
+.keeper-field textarea {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgba(244, 239, 230, 0.28);
+  background: transparent;
+  color: var(--color-ivory);
+  font: inherit;
+  padding: 0.45rem 0;
+}
+
+.keeper-field textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+  border: 1px solid rgba(244, 239, 230, 0.16);
+  padding: 0.75rem 0.8rem;
+}
+
+.keeper-save {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid rgba(244, 239, 230, 0.12);
+  background: rgba(16, 14, 12, 0.94);
+  padding: 0.9rem max(1rem, env(safe-area-inset-right)) max(0.9rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
 }

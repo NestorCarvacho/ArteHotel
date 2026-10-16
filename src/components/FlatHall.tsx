@@ -1,22 +1,26 @@
-import { exhibition, artworks } from "../data/artworks"
+import { useCatalog } from "../data/catalog"
 import { MuseumFigure } from "./MuseumFigure"
 
 export function EmptyHall() {
+  const { exhibition } = useCatalog()
   return (
     <main className="grid h-full place-items-center bg-night px-6 text-center text-ivory">
       <div className="max-w-md">
         <p className="font-sans text-[11px] tracking-[0.36em] text-brass uppercase">{exhibition.kicker}</p>
         <h1 className="mt-4 font-serif text-5xl font-normal italic">El pasillo está vacío</h1>
         <p className="mt-5 font-sans leading-relaxed font-light text-ivory-dim">
-          Agrega tus fotografías en <span className="text-ivory">src/data/artworks.ts</span> y los archivos en{" "}
-          <span className="text-ivory">public/obras/</span>.
+          Agrega la primera habitación desde el mantenedor, con su nombre, su foto y su descripción.
         </p>
+        <a className="brass-btn mt-8 inline-block" href="/mantener">
+          Abrir el mantenedor
+        </a>
       </div>
     </main>
   )
 }
 
 export function FlatHall({ fallback = false }: { fallback?: boolean }) {
+  const { exhibition, artworks } = useCatalog()
   const hasSamples = artworks.some((artwork) => artwork.sample)
 
   return (

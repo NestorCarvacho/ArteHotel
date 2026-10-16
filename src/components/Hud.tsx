@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react"
-import { exhibition, artworks } from "../data/artworks"
+import { useCatalog } from "../data/catalog"
 import { approachZ, progressOf } from "../lib/hall"
 import { getWalk, subscribeWalk } from "../lib/walk"
 
@@ -9,6 +9,7 @@ type HudProps = {
 
 export function Hud({ onEnter }: HudProps) {
   const snap = useSyncExternalStore(subscribeWalk, getWalk, getWalk)
+  const { exhibition, artworks } = useCatalog()
   const artwork = artworks[snap.nearest]
   const count = artworks.length
 
@@ -36,6 +37,9 @@ export function Hud({ onEnter }: HudProps) {
           <p className="mt-2 hidden font-sans text-[10px] tracking-[0.14em] text-ivory/45 md:block">
             Flechas para caminar · Enter para entrar
           </p>
+          <a className="pointer-events-auto mt-3 inline-block font-sans text-[10px] tracking-[0.22em] text-ivory/55 uppercase" href="/mantener">
+            Mantener
+          </a>
         </div>
       </div>
 

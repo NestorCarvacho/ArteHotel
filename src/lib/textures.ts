@@ -112,7 +112,8 @@ export function createPlaqueTexture(label: string) {
   ctx.lineWidth = 14
   ctx.strokeRect(18, 18, canvas.width - 36, canvas.height - 36)
   ctx.fillStyle = "#2a2118"
-  ctx.font = "500 132px Fraunces, Georgia, 'Liberation Serif', serif"
+  const size = label.length <= 3 ? 132 : label.length <= 6 ? 96 : label.length <= 12 ? 64 : 46
+  ctx.font = `500 ${size}px Fraunces, Georgia, 'Liberation Serif', serif`
   ctx.textAlign = "center"
   ctx.textBaseline = "middle"
   ctx.fillText(label, canvas.width / 2, canvas.height / 2 + 8)

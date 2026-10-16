@@ -1,4 +1,4 @@
-import { artworks } from "../data/artworks"
+import { getArtworks } from "../data/catalog"
 import { HALL, approachZ, farLimit, isInFront, nearestDoor, progressOf } from "./hall"
 
 export type WalkSnap = {
@@ -9,7 +9,7 @@ export type WalkSnap = {
   moved: boolean
 }
 
-const count = () => artworks.length
+const count = () => getArtworks().length
 
 let hasMoved = false
 

@@ -2,27 +2,24 @@
 
 Portafolio de fotografía recorrido como un pasillo de hotel. El scroll avanza sobre el piso. Cada puerta abre una sala con una sola imagen, iluminada como en un museo.
 
-Es una página estática. No hay cuentas, base de datos ni servidor: el navegador solo camina y abre las salas. `npm run build` deja el sitio en `dist/`, listo para cualquier hosting de archivos.
+El pasillo es una página estática: no hay cuentas ni base de datos, y el navegador solo camina y abre las salas. El mantenedor escribe esos cambios en archivos del proyecto, y solo está disponible mientras corre `npm run dev`. `npm run build` deja el sitio en `dist/`, listo para cualquier hosting de archivos.
 
 ## No hace falta comprar un hotel en 3D
 
 Muros, piso, alfombra, puertas, números y lámparas están construidos en código. No hay que comprar un pack de muebles, texturas ni un modelo de pasillo.
 
-## Qué sí hace falta
+## Mantenedor
 
-Solo el contenido de la exposición:
+Con el proyecto en marcha, abre [http://127.0.0.1:4731/mantener](http://127.0.0.1:4731/mantener). Ahí puedes:
 
-1. **Tus fotografías.** JPG o WEBP, lado largo entre 2000 y 3000 px, color sRGB. Una imagen por puerta. Pueden ser verticales o apaisadas: el marco se ajusta.
-2. **La ficha de cada pieza** en `src/data/artworks.ts`: número de habitación, título, año, medio y una frase.
-3. **El nombre de la muestra**, si no quieres que se llame Habitaciones. Está al inicio del mismo archivo.
+- poner el nombre de cada habitación y el texto de la puerta
+- subir o cambiar la foto
+- escribir la descripción, el año y el medio
+- agregar o quitar habitaciones, y cambiar el orden del recorrido
 
-Las ocho imágenes que ves ahora son estudios de muestra. Para reemplazarlas:
+Guardar escribe `public/coleccion.json` y las fotos en `public/obras/`. El pasillo las lee al volver. No hace falta editar código.
 
-1. Copia tus archivos a `public/obras/`.
-2. En cada objeto de `artworks`, cambia `src`, los textos y `width` / `height`.
-3. Pon `sample: false`.
-
-Puedes agregar o quitar piezas de la lista. El pasillo crece solo y alterna las puertas de pared.
+Las ocho imágenes iniciales son estudios de muestra. Al subir una foto, esa puerta deja de ser muestra.
 
 ## Cómo verlo
 
@@ -44,4 +41,4 @@ npm run build
 npm run preview
 ```
 
-Sube la carpeta `dist/`. No hace falta un backend.
+Sube la carpeta `dist/`. El sitio publicado muestra las habitaciones guardadas. Para volver a editarlas, corre el proyecto en este computador y entra al mantenedor.

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
-import { artworks } from "./data/artworks"
+import { getArtworks, useCatalog } from "./data/catalog"
+import { Maintainer } from "./components/Maintainer"
 import { FlatHall, EmptyHall } from "./components/FlatHall"
 import { Hall } from "./components/Hall"
 import { Hud } from "./components/Hud"
@@ -11,8 +12,10 @@ import { getWalk, goToEnd, goToEntrance, nudge, seekIndex } from "./lib/walk"
 import { hasWebGL } from "./lib/webgl"
 
 export default function App() {
+  const catalog = useCatalog()
   const [glOk] = useState(hasWebGL)
-  if (artworks.length === 0) return <EmptyHall />
+  if (window.location.pathname === "/mantener") return <Maintainer />
+  if (catalog.artworks.length === 0) return <EmptyHall />
   if (!glOk) return <FlatHall fallback />
 
   return (
@@ -56,7 +59,7 @@ function Experience() {
     later(() => {
       roomRef.current = id
       setRoomId(id)
-      const piece = artworks.find((artwork) => artwork.id === id)
+      const piece = getArtworks().find((artwork) => artwork.id === id)
       document.title = piece ? `${piece.title} — Habitaciones` : "Habitaciones — portafolio"
       later(() => {
         setCovered(false)
@@ -81,7 +84,7 @@ function Experience() {
   }
 
   function goTo(index: number) {
-    const next = artworks[index]
+    const next = getArtworks()[index]
     if (!next || busy.current) return
     seekIndex(index)
     roomRef.current = next.id
@@ -92,8 +95,9 @@ function Experience() {
   function tryEnter(index: number) {
     if (introRef.current === "open" || roomRef.current || busy.current) return
     const snap = getWalk()
-    if (snap.inFront && snap.nearest === index) {
-      openRoom(artworks[index].id)
+    const piece = getArtworks()[index]
+    if (snap.inFront && snap.nearest === index && piece) {
+      openRoom(piece.id)
       return
     }
     seekIndex(index)
@@ -131,7 +135,7 @@ function Experience() {
       }
 
       if (roomRef.current) {
-        const index = artworks.findIndex((artwork) => artwork.id === roomRef.current)
+        const index = getArtworks().findIndex((artwork) => artwork.id === roomRef.current)
         if (event.key === "Escape") {
           event.preventDefault()
           handlers.current.closeRoom()

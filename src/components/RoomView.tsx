@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import { artworks } from "../data/artworks"
+import { useCatalog } from "../data/catalog"
 import { MuseumFigure } from "./MuseumFigure"
 
 type RoomViewProps = {
@@ -10,6 +10,7 @@ type RoomViewProps = {
 
 export function RoomView({ roomId, onClose, onGo }: RoomViewProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
+  const { artworks } = useCatalog()
   const index = artworks.findIndex((artwork) => artwork.id === roomId)
   const artwork = artworks[index]
 
@@ -24,7 +25,7 @@ export function RoomView({ roomId, onClose, onGo }: RoomViewProps) {
       const image = new Image()
       image.src = next.src
     }
-  }, [index])
+  }, [artworks, index])
 
   if (!artwork) return null
 
