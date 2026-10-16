@@ -2,7 +2,7 @@
 
 Portafolio de fotografía recorrido como un pasillo de hotel. El scroll avanza sobre el piso. Cada puerta abre una sala con una sola imagen, iluminada como en un museo.
 
-El pasillo es una página estática: no hay cuentas ni base de datos, y el navegador solo camina y abre las salas. El mantenedor escribe esos cambios en archivos del proyecto, y solo está disponible mientras corre `npm run dev`. `npm run build` deja el sitio en `dist/`, listo para cualquier hosting de archivos.
+El pasillo es una página estática: quien lo visita no necesita cuenta. El mantenedor escribe los cambios en archivos del proyecto, pide un ingreso y solo está disponible mientras corre `npm run dev`. `npm run build` deja el sitio en `dist/`, listo para cualquier hosting de archivos.
 
 ## No hace falta comprar un hotel en 3D
 
@@ -10,7 +10,9 @@ Muros, piso, alfombra, puertas, números y lámparas están construidos en códi
 
 ## Mantenedor
 
-Con el proyecto en marcha, abre [http://127.0.0.1:4731/mantener](http://127.0.0.1:4731/mantener). Ahí puedes:
+Con el proyecto en marcha, abre [http://127.0.0.1:4731/mantener](http://127.0.0.1:4731/mantener). El ingreso entrega un JWT en una cookie que el navegador no puede leer. Tres intentos fallidos cierran el acceso durante 15 minutos. La contraseña no está en la página: el servidor guarda solo su hash.
+
+Dentro puedes:
 
 - poner el nombre de cada habitación y el texto de la puerta
 - subir o cambiar la foto

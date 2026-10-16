@@ -2,6 +2,19 @@ import fs from "node:fs"
 import type { IncomingMessage, ServerResponse } from "node:http"
 import path from "node:path"
 import type { Connect, Plugin } from "vite"
+import {
+  attemptState,
+  clearCookie,
+  credentialsMatch,
+  failureMessage,
+  loadSecret,
+  readCookie,
+  recordFailure,
+  recordSuccess,
+  sessionCookie,
+  signToken,
+  verifyToken,
+} from "./sesion.ts"
 
 const MAX_BODY = 18_000_000
 
@@ -9,6 +22,17 @@ function send(res: ServerResponse, status: number, body: string) {
   res.statusCode = status
   res.setHeader("content-type", "text/plain; charset=utf-8")
   res.end(body)
+}
+
+function sendJson(res: ServerResponse, status: number, body: unknown) {
+  res.statusCode = status
+  res.setHeader("content-type", "application/json; charset=utf-8")
+  res.setHeader("cache-control", "no-store")
+  res.end(JSON.stringify(body))
+}
+
+function clientKey(req: IncomingMessage) {
+  return req.socket.remoteAddress ?? "local"
 }
 
 function readBody(req: IncomingMessage, limit: number) {
@@ -85,14 +109,73 @@ function extensionFor(type: unknown) {
 }
 
 function attach(middlewares: Connect.Server, root: string) {
+  const secret = loadSecret(root)
   middlewares.use(async (req, res, next) => {
     const url = req.url?.split("?")[0]
-    if (url !== "/api/coleccion" && url !== "/api/obras") {
+    if (url !== "/api/coleccion" && url !== "/api/obras" && url !== "/api/sesion") {
       next()
       return
     }
 
     try {
+      if (url === "/api/sesion" && req.method === "GET") {
+        const token = readCookie(req.headers.cookie, "sesion")
+        const ok = Boolean(token && verifyToken(secret, token))
+        sendJson(res, ok ? 200 : 401, { ok })
+        return
+      }
+
+      if (url === "/api/sesion" && req.method === "DELETE") {
+        res.setHeader("set-cookie", clearCookie())
+        sendJson(res, 200, { ok: true })
+        return
+      }
+
+      if (url === "/api/sesion" && req.method === "POST") {
+        const key = clientKey(req)
+        const state = attemptState(key)
+        if (state.locked) {
+          sendJson(res, 429, { ok: false, locked: true, error: failureMessage(state) })
+          req.resume()
+          return
+        }
+        const raw = await readBody(req, 8_000)
+        let parsed: unknown
+        try {
+          parsed = JSON.parse(raw.toString("utf8"))
+        } catch {
+          sendJson(res, 400, { ok: false, error: "No se pudo leer el ingreso." })
+          return
+        }
+        const record = parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {}
+        const email = typeof record.email === "string" ? record.email : ""
+        const password = typeof record.password === "string" ? record.password : ""
+        if (!credentialsMatch(email, password)) {
+          const failed = recordFailure(key)
+          sendJson(res, failed.locked ? 429 : 401, {
+            ok: false,
+            locked: failed.locked,
+            remaining: failed.remaining,
+            error: failureMessage(failed),
+          })
+          return
+        }
+        recordSuccess(key)
+        const token = signToken(secret)
+        res.setHeader("set-cookie", sessionCookie(token))
+        sendJson(res, 200, { ok: true })
+        return
+      }
+
+      if ((url === "/api/coleccion" && req.method === "PUT") || (url === "/api/obras" && req.method === "POST")) {
+        const token = readCookie(req.headers.cookie, "sesion")
+        if (!token || !verifyToken(secret, token)) {
+          send(res, 401, "La sesión expiró. Vuelve a entrar.")
+          req.resume()
+          return
+        }
+      }
+
       if (url === "/api/coleccion" && req.method === "PUT") {
         const raw = await readBody(req, 2_000_000)
         const parsed: unknown = JSON.parse(raw.toString("utf8"))

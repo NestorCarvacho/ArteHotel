@@ -1,5 +1,6 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { blankArtwork, setCatalog, useCatalog, type Artwork, type Catalog } from "../data/catalog"
+import { Login } from "./Login"
 
 type SaveState = "idle" | "saving" | "saved" | "error"
 
@@ -41,7 +42,7 @@ function fileToBase64(file: File) {
   })
 }
 
-export function Maintainer() {
+function Editor({ onLeave }: { onLeave: () => void }) {
   const loaded = useCatalog()
   const [baseline, setBaseline] = useState(() => cloneCatalog(loaded))
   const [draft, setDraft] = useState(() => cloneCatalog(loaded))
@@ -107,6 +108,10 @@ export function Maintainer() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ type: file.type, data }),
       })
+      if (response.status === 401) {
+        onLeave()
+        return
+      }
       if (!response.ok) throw new Error(await response.text())
       const body = (await response.json()) as { src?: string }
       if (!body.src) throw new Error("La foto no quedó guardada.")
@@ -142,6 +147,10 @@ export function Maintainer() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(draft),
       })
+      if (response.status === 401) {
+        onLeave()
+        return
+      }
       if (!response.ok) throw new Error(await response.text())
       setCatalog(draft)
       setBaseline(cloneCatalog(draft))
@@ -177,16 +186,28 @@ export function Maintainer() {
               actualizado.
             </p>
           </div>
-          <a
-            className="text-btn"
-            href="/"
-            onClick={(event) => {
-              if (!dirty) return
-              if (!window.confirm("Hay cambios sin guardar. ¿Vuelves al pasillo igual?")) event.preventDefault()
-            }}
-          >
-            Ver el pasillo
-          </a>
+          <div className="flex gap-4">
+            <button
+              type="button"
+              className="text-btn"
+              onClick={() => {
+                if (dirty && !window.confirm("Hay cambios sin guardar. ¿Sales igual?")) return
+                void fetch("/api/sesion", { method: "DELETE" }).finally(onLeave)
+              }}
+            >
+              Salir
+            </button>
+            <a
+              className="text-btn"
+              href="/"
+              onClick={(event) => {
+                if (!dirty) return
+                if (!window.confirm("Hay cambios sin guardar. ¿Vuelves al pasillo igual?")) event.preventDefault()
+              }}
+            >
+              Ver el pasillo
+            </a>
+          </div>
         </header>
 
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-6 sm:px-6">
@@ -338,4 +359,33 @@ export function Maintainer() {
       </form>
     </div>
   )
+}
+
+export function Maintainer() {
+  const [session, setSession] = useState<"loading" | "in" | "out">("loading")
+
+  useEffect(() => {
+    let active = true
+    fetch("/api/sesion", { cache: "no-store" })
+      .then((response) => {
+        if (active) setSession(response.ok ? "in" : "out")
+      })
+      .catch(() => {
+        if (active) setSession("out")
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  if (session === "loading") {
+    return (
+      <div className="keeper grid place-items-center">
+        <p className="font-serif text-3xl italic">Abriendo el mantenedor…</p>
+      </div>
+    )
+  }
+
+  if (session === "out") return <Login onEnter={() => setSession("in")} />
+  return <Editor onLeave={() => setSession("out")} />
 }
