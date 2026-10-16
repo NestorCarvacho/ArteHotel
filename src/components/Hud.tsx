@@ -78,6 +78,14 @@ export function Hud({ onEnter }: HudProps) {
             />
           ))}
         </div>
+        <a
+          className="pointer-events-auto mt-1 font-sans text-[10px] tracking-[0.22em] text-ivory/45 uppercase hover:text-brass"
+          href="https://nestorcarvacho.pythonanywhere.com/"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Powered by Néstor Carvacho
+        </a>
       </div>
     </div>
   )

@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import { coleccionPlugin } from "./server/coleccion-plugin.ts"
 
+const port = Number(process.env.PORT) || 4731
+
 export default defineConfig({
   plugins: [react(), tailwindcss(), coleccionPlugin()],
   server: {
@@ -12,7 +14,7 @@ export default defineConfig({
   },
   preview: {
     host: true,
-    port: 4731,
+    port,
     strictPort: true,
   },
 })

@@ -29,6 +29,14 @@ export function Intro({ leaving, onEnter }: IntroProps) {
           Mantener
         </a>
       </div>
+      <a
+        className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] font-sans text-[10px] tracking-[0.22em] text-ivory/50 uppercase hover:text-brass"
+        href="https://nestorcarvacho.pythonanywhere.com/"
+        target="_blank"
+        rel="noreferrer"
+      >
+        Powered by Néstor Carvacho
+      </a>
     </div>
   )
 }
