@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1500" viewBox="0 0 1200 1500">
+
+  <defs>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.7"/></feComponentTransfer>
+    </filter>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="36"/>
+    </filter>
+    <filter id="softer" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="70"/>
+    </filter>
+    <radialGradient id="vig" cx="50%" cy="45%" r="75%">
+      <stop offset="58%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.42"/>
+    </radialGradient>
+  </defs>
+
+    <rect width="1200" height="1500" fill="#d5d8dc"/>
+    <rect x="0" width="160" height="1500" fill="#ece7df"/>
+    <rect x="150" width="90" height="1500" fill="#c5ccd3"/>
+    <rect x="230" width="210" height="1500" fill="#f7f3ec"/>
+    <rect x="420" width="70" height="1500" fill="#b7c0c8"/>
+    <rect x="480" width="180" height="1500" fill="#e7e1d6"/>
+    <rect x="650" width="40" height="1500" fill="#9eacb6" opacity="0.7"/>
+    <rect x="690" width="250" height="1500" fill="#f4f1ea"/>
+    <rect x="930" width="120" height="1500" fill="#d8ddd8"/>
+    <rect x="1040" width="160" height="1500" fill="#fbf8f3"/>
+    <ellipse cx="600" cy="700" rx="500" ry="200" fill="#ffffff" filter="url(#softer)" opacity="0.25"/>
+  
+  <rect width="100%" height="100%" fill="url(#vig)"/>
+  <rect width="100%" height="100%" filter="url(#grain)" opacity="0.34" style="mix-blend-mode:multiply"/>
+</svg>
