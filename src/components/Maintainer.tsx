@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { blankArtwork, setCatalog, useCatalog, type Artwork, type Catalog } from "../data/catalog"
+import { blankArtwork, MAX_CAPTION, MAX_PHOTOS, MIN_PHOTOS, setCatalog, useCatalog, type Artwork, type Catalog, type Photo } from "../data/catalog"
 import { Login } from "./Login"
 
 type SaveState = "idle" | "saving" | "saved" | "error"
@@ -99,8 +99,12 @@ function Editor({ onLeave }: { onLeave: () => void }) {
       setUploadError({ id, text: "La foto tiene que pesar menos de 12 MB." })
       return
     }
+    const current = draft.artworks.find((item) => item.id === id)
+    if (current && current.photos.length >= MAX_PHOTOS) {
+      setUploadError({ id, text: `Una habitación admite como máximo ${MAX_PHOTOS} fotos.` })
+      return
+    }
     setUploadingId(id)
-    setUploadError(null)
     try {
       const [measured, data] = await Promise.all([measureImage(file), fileToBase64(file)])
       const response = await fetch("/api/obras", {
@@ -115,15 +119,14 @@ function Editor({ onLeave }: { onLeave: () => void }) {
       if (!response.ok) throw new Error(await response.text())
       const body = (await response.json()) as { src?: string }
       if (!body.src) throw new Error("La foto no quedó guardada.")
+      const photo: Photo = { src: body.src, width: measured.width, height: measured.height, title: "", caption: "" }
       setDraft((current) => ({
         ...current,
         artworks: current.artworks.map((artwork) => {
-          if (artwork.id !== id) return artwork
+          if (artwork.id !== id || artwork.photos.length >= MAX_PHOTOS) return artwork
           return {
             ...artwork,
-            src: body.src ?? "",
-            width: measured.width,
-            height: measured.height,
+            photos: [...artwork.photos, photo],
             sample: false,
             medium: artwork.medium === "Estudio de muestra" ? "Fotografía" : artwork.medium,
           }
@@ -138,7 +141,70 @@ function Editor({ onLeave }: { onLeave: () => void }) {
     }
   }
 
+  function patchPhoto(id: string, photoIndex: number, partial: Partial<Pick<Photo, "title" | "caption">>) {
+    setSaveState("idle")
+    setDraft((current) => ({
+      ...current,
+      artworks: current.artworks.map((artwork) => {
+        if (artwork.id !== id) return artwork
+        return {
+          ...artwork,
+          photos: artwork.photos.map((photo, index) => (index === photoIndex ? { ...photo, ...partial } : photo)),
+        }
+      }),
+    }))
+  }
+
+  function movePhoto(id: string, photoIndex: number, direction: -1 | 1) {
+    setSaveState("idle")
+    setDraft((current) => ({
+      ...current,
+      artworks: current.artworks.map((artwork) => {
+        if (artwork.id !== id) return artwork
+        const next = photoIndex + direction
+        if (next < 0 || next >= artwork.photos.length) return artwork
+        const photos = [...artwork.photos]
+        const [item] = photos.splice(photoIndex, 1)
+        if (!item) return artwork
+        photos.splice(next, 0, item)
+        return { ...artwork, photos }
+      }),
+    }))
+  }
+
+  async function addFiles(id: string, incoming: FileList | File[]) {
+    const files = [...incoming]
+    if (files.length === 0) return
+    const room = draft.artworks.find((item) => item.id === id)
+    const free = MAX_PHOTOS - (room?.photos.length ?? 0)
+    if (free <= 0) {
+      setUploadError({ id, text: `Una habitación admite como máximo ${MAX_PHOTOS} fotos.` })
+      return
+    }
+    const batch = files.slice(0, free)
+    setUploadError(
+      batch.length < files.length ? { id, text: `Solo entraron ${batch.length}. El máximo es ${MAX_PHOTOS}.` } : null,
+    )
+    for (const file of batch) await upload(id, file)
+  }
+
+  function removePhoto(id: string, photoIndex: number) {
+    setSaveState("idle")
+    setDraft((current) => ({
+      ...current,
+      artworks: current.artworks.map((artwork) =>
+        artwork.id === id ? { ...artwork, photos: artwork.photos.filter((_, index) => index !== photoIndex) } : artwork,
+      ),
+    }))
+  }
+
   async function save() {
+    const short = draft.artworks.find((artwork) => artwork.photos.length < MIN_PHOTOS || artwork.photos.length > MAX_PHOTOS)
+    if (short) {
+      setSaveState("error")
+      setMessage(`«${short.title}» necesita entre ${MIN_PHOTOS} y ${MAX_PHOTOS} fotos.`)
+      return
+    }
     setSaveState("saving")
     setMessage("")
     try {
@@ -180,10 +246,9 @@ function Editor({ onLeave }: { onLeave: () => void }) {
         <header className="mx-auto flex w-full max-w-5xl flex-wrap items-end justify-between gap-4 px-4 pt-6 sm:px-6">
           <div>
             <p className="font-sans text-[11px] tracking-[0.36em] text-brass uppercase">Mantenedor</p>
-            <h1 className="mt-2 font-serif text-4xl font-normal italic sm:text-5xl">Habitaciones</h1>
+            <h1 className="mt-2 font-serif text-4xl font-normal italic sm:text-5xl">{draft.exhibition.title}</h1>
             <p className="mt-3 max-w-xl font-sans text-sm leading-relaxed font-light text-ivory-dim">
-              Ponle nombre a cada puerta, cambia la foto y escribe la descripción. Al guardar, el pasillo queda
-              actualizado.
+            Cada habitación va aparte. Arriba va su nombre; abajo, las fotos. Agrega varias de una vez y quita cada una con la cruz.
             </p>
           </div>
           <div className="flex gap-4">
@@ -225,60 +290,40 @@ function Editor({ onLeave }: { onLeave: () => void }) {
 
           {draft.artworks.map((artwork, index) => (
             <article key={artwork.id} id={`habitacion-${artwork.id}`} className="keeper-card">
-              <div
-                className={`keeper-photo ${overId === artwork.id ? "is-over" : ""}`}
-                onDragOver={(event) => {
-                  event.preventDefault()
-                  setOverId(artwork.id)
-                }}
-                onDragLeave={() => setOverId((current) => (current === artwork.id ? null : current))}
-                onDrop={(event) => {
-                  event.preventDefault()
-                  setOverId(null)
-                  const file = event.dataTransfer.files[0]
-                  if (file) void upload(artwork.id, file)
-                }}
-              >
-                {artwork.src ? (
-                  <img src={artwork.src} alt="" />
-                ) : (
-                  <p className="px-4 text-center font-sans text-sm text-ivory/70">Arrastra una foto o elige un archivo.</p>
-                )}
-                <label className="keeper-upload">
-                  {uploadingId === artwork.id ? "Subiendo…" : artwork.src ? "Cambiar foto" : "Subir foto"}
-                  <input
-                    type="file"
-                    accept={accepted.join(",")}
-                    disabled={uploadingId === artwork.id}
-                    onChange={(event) => {
-                      const file = event.target.files?.[0]
-                      event.target.value = ""
-                      if (file) void upload(artwork.id, file)
-                    }}
-                  />
-                </label>
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-sans text-[11px] tracking-[0.28em] text-ivory/55">
+                  Habitación {String(index + 1).padStart(2, "0")}
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <button type="button" className="text-btn" disabled={index === 0} onClick={() => move(index, -1)}>
+                    Subir
+                  </button>
+                  <button
+                    type="button"
+                    className="text-btn"
+                    disabled={index === draft.artworks.length - 1}
+                    onClick={() => move(index, 1)}
+                  >
+                    Bajar
+                  </button>
+                  {confirmId === artwork.id ? (
+                    <>
+                      <button type="button" className="text-btn" onClick={() => remove(artwork.id)}>
+                        Confirmar
+                      </button>
+                      <button type="button" className="text-btn" onClick={() => setConfirmId(null)}>
+                        Cancelar
+                      </button>
+                    </>
+                  ) : (
+                    <button type="button" className="text-btn" onClick={() => setConfirmId(artwork.id)}>
+                      Quitar habitación
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="flex min-w-0 flex-col gap-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-sans text-[11px] tracking-[0.28em] text-ivory/55">
-                    {String(index + 1).padStart(2, "0")}
-                  </p>
-                  <div className="flex gap-3">
-                    <button type="button" className="text-btn" disabled={index === 0} onClick={() => move(index, -1)}>
-                      Antes
-                    </button>
-                    <button
-                      type="button"
-                      className="text-btn"
-                      disabled={index === draft.artworks.length - 1}
-                      onClick={() => move(index, 1)}
-                    >
-                      Después
-                    </button>
-                  </div>
-                </div>
-
+              <div className="keeper-room-fields">
                 <label className="keeper-field">
                   <span>Nombre</span>
                   <input
@@ -289,7 +334,7 @@ function Editor({ onLeave }: { onLeave: () => void }) {
                   />
                 </label>
                 <label className="keeper-field">
-                  <span>En la puerta</span>
+                  <span>Número en la puerta</span>
                   <input
                     value={artwork.room}
                     maxLength={24}
@@ -297,52 +342,106 @@ function Editor({ onLeave }: { onLeave: () => void }) {
                     onChange={(event) => patch(artwork.id, { room: event.target.value })}
                   />
                 </label>
-                <label className="keeper-field">
-                  <span>Descripción</span>
+                <label className="keeper-field is-wide">
+                  <span>Descripción de la habitación</span>
                   <textarea
                     value={artwork.caption}
-                    maxLength={400}
+                    maxLength={MAX_CAPTION}
+                    rows={2}
                     onChange={(event) => patch(artwork.id, { caption: event.target.value })}
                   />
                 </label>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="keeper-field">
-                    <span>Año</span>
-                    <input
-                      value={artwork.year}
-                      maxLength={12}
-                      onChange={(event) => patch(artwork.id, { year: event.target.value })}
-                    />
-                  </label>
-                  <label className="keeper-field">
-                    <span>Medio</span>
-                    <input
-                      value={artwork.medium}
-                      maxLength={40}
-                      onChange={(event) => patch(artwork.id, { medium: event.target.value })}
-                    />
-                  </label>
-                </div>
-
-                {uploadError?.id === artwork.id && <p className="text-sm text-[#e7b2a0]">{uploadError.text}</p>}
-                {!artwork.src && <p className="text-sm text-ivory/55">Esta habitación todavía no tiene foto.</p>}
-
-                {confirmId === artwork.id ? (
-                  <div className="flex flex-wrap items-center gap-4">
-                    <p className="text-sm text-ivory-dim">¿Quitas esta habitación del pasillo?</p>
-                    <button type="button" className="text-btn" onClick={() => remove(artwork.id)}>
-                      Sí, quitar
-                    </button>
-                    <button type="button" className="text-btn" onClick={() => setConfirmId(null)}>
-                      Cancelar
-                    </button>
-                  </div>
-                ) : (
-                  <button type="button" className="text-btn self-start" onClick={() => setConfirmId(artwork.id)}>
-                    Quitar
-                  </button>
-                )}
               </div>
+
+              <div
+                className={`keeper-photos ${overId === artwork.id ? "is-over" : ""}`}
+                onDragOver={(event) => {
+                  event.preventDefault()
+                  setOverId(artwork.id)
+                }}
+                onDragLeave={() => setOverId((current) => (current === artwork.id ? null : current))}
+                onDrop={(event) => {
+                  event.preventDefault()
+                  setOverId(null)
+                  if (event.dataTransfer.files.length) void addFiles(artwork.id, event.dataTransfer.files)
+                }}
+              >
+                {artwork.photos.map((photo, photoIndex) => (
+                  <div key={`${photo.src}-${photoIndex}`} className="keeper-shot">
+                    <div className="keeper-shot-img">
+                      <img src={photo.src} alt="" />
+                      <button
+                        type="button"
+                        className="keeper-x"
+                        aria-label={`Quitar ${photo.title || `foto ${photoIndex + 1}`}`}
+                        onClick={() => removePhoto(artwork.id, photoIndex)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <label className="keeper-field">
+                      <span>Título</span>
+                      <input
+                        value={photo.title}
+                        maxLength={80}
+                        placeholder="Título de la foto"
+                        onChange={(event) => patchPhoto(artwork.id, photoIndex, { title: event.target.value })}
+                      />
+                    </label>
+                    <label className="keeper-field">
+                      <span>Descripción</span>
+                      <textarea
+                        value={photo.caption}
+                        maxLength={MAX_CAPTION}
+                        rows={2}
+                        placeholder="Descripción"
+                        onChange={(event) => patchPhoto(artwork.id, photoIndex, { caption: event.target.value })}
+                      />
+                    </label>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        className="text-btn"
+                        disabled={photoIndex === 0}
+                        onClick={() => movePhoto(artwork.id, photoIndex, -1)}
+                      >
+                        Antes
+                      </button>
+                      <button
+                        type="button"
+                        className="text-btn"
+                        disabled={photoIndex === artwork.photos.length - 1}
+                        onClick={() => movePhoto(artwork.id, photoIndex, 1)}
+                      >
+                        Después
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                <label className={`keeper-add ${artwork.photos.length >= MAX_PHOTOS ? "is-full" : ""}`}>
+                  <span>{uploadingId === artwork.id ? "Subiendo…" : "Agregar fotos"}</span>
+                  <small>
+                    {artwork.photos.length} de {MAX_PHOTOS}
+                  </small>
+                  <input
+                    type="file"
+                    accept={accepted.join(",")}
+                    multiple
+                    disabled={uploadingId === artwork.id || artwork.photos.length >= MAX_PHOTOS}
+                    onChange={(event) => {
+                      const files = event.target.files
+                      event.target.value = ""
+                      if (files && files.length) void addFiles(artwork.id, files)
+                    }}
+                  />
+                </label>
+              </div>
+
+              {uploadError?.id === artwork.id && <p className="text-sm text-[#e7b2a0]">{uploadError.text}</p>}
+              {artwork.photos.length < MIN_PHOTOS && (
+                <p className="text-sm text-ivory/55">Faltan fotos: esta habitación necesita al menos {MIN_PHOTOS}.</p>
+              )}
             </article>
           ))}
         </div>

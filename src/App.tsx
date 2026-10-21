@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { getArtworks, useCatalog } from "./data/catalog"
+import { getArtworks, getExhibition, useCatalog } from "./data/catalog"
 import { Maintainer } from "./components/Maintainer"
 import { FlatHall, EmptyHall } from "./components/FlatHall"
 import { Hall } from "./components/Hall"
@@ -39,7 +39,6 @@ function Experience() {
     tryEnter: (_index: number) => {},
     closeRoom: () => {},
     dismissIntro: () => {},
-    goTo: (_index: number) => {},
   })
 
   useEffect(() => {
@@ -60,7 +59,7 @@ function Experience() {
       roomRef.current = id
       setRoomId(id)
       const piece = getArtworks().find((artwork) => artwork.id === id)
-      document.title = piece ? `${piece.title} — Habitaciones` : "Habitaciones — portafolio"
+      document.title = piece ? `${piece.title} — ${getExhibition().title}` : getExhibition().title
       later(() => {
         setCovered(false)
         busy.current = false
@@ -75,21 +74,12 @@ function Experience() {
     later(() => {
       roomRef.current = null
       setRoomId(null)
-      document.title = "Habitaciones — portafolio"
+      document.title = getExhibition().title
       later(() => {
         setCovered(false)
         busy.current = false
       }, reduce ? 0 : 70)
     }, reduce ? 0 : 420)
-  }
-
-  function goTo(index: number) {
-    const next = getArtworks()[index]
-    if (!next || busy.current) return
-    seekIndex(index)
-    roomRef.current = next.id
-    setRoomId(next.id)
-    document.title = `${next.title} — Habitaciones`
   }
 
   function tryEnter(index: number) {
@@ -106,12 +96,12 @@ function Experience() {
   function dismissIntro() {
     if (introRef.current !== "open") return
     setIntro("closing")
-    later(() => setIntro("closed"), reduce ? 0 : 560)
+    later(() => setIntro("closed"), reduce ? 0 : 900)
   }
 
   useEffect(() => {
     introRef.current = intro
-    handlers.current = { tryEnter, closeRoom, dismissIntro, goTo }
+    handlers.current = { tryEnter, closeRoom, dismissIntro }
   })
 
   useEffect(() => {
@@ -135,16 +125,9 @@ function Experience() {
       }
 
       if (roomRef.current) {
-        const index = getArtworks().findIndex((artwork) => artwork.id === roomRef.current)
         if (event.key === "Escape") {
           event.preventDefault()
           handlers.current.closeRoom()
-        } else if (event.key === "ArrowRight") {
-          event.preventDefault()
-          handlers.current.goTo(index + 1)
-        } else if (event.key === "ArrowLeft") {
-          event.preventDefault()
-          handlers.current.goTo(index - 1)
         }
         return
       }
@@ -213,7 +196,7 @@ function Experience() {
         {showHud && <Hud onEnter={tryEnter} />}
       </div>
       {showIntro && <Intro leaving={intro === "closing"} onEnter={dismissIntro} />}
-      {roomId && <RoomView roomId={roomId} onClose={closeRoom} onGo={goTo} />}
+      {roomId && <RoomView roomId={roomId} onClose={closeRoom} />}
       <div className={`veil ${covered ? "is-on" : ""}`} />
     </div>
   )

@@ -41,9 +41,9 @@ export function Login({ onEnter }: LoginProps) {
       <div className="keeper-login">
         <form onSubmit={(event) => void submit(event)}>
           <p className="font-sans text-[11px] tracking-[0.36em] text-brass uppercase">Mantenedor</p>
-          <h1 className="mt-2 font-serif text-5xl font-normal italic">Habitaciones</h1>
+          <h1 className="mt-2 font-serif text-5xl font-normal italic">laSierra Gonzalez</h1>
           <p className="mt-3 font-sans text-sm leading-relaxed font-light text-ivory-dim">
-            Entra para nombrar las puertas, cambiar las fotos y escribir las descripciones.
+            Entra para armar las habitaciones, colocar las fotos y escribir las descripciones.
           </p>
           <label className="keeper-field mt-8">
             <span>Correo</span>

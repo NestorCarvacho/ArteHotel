@@ -8,6 +8,18 @@ export type Exhibition = {
   sampleNote: string
 }
 
+export type Photo = {
+  src: string
+  width: number
+  height: number
+  title: string
+  caption: string
+}
+
+export const MIN_PHOTOS = 2
+export const MAX_PHOTOS = 30
+export const MAX_CAPTION = 300
+
 export type Artwork = {
   id: string
   room: string
@@ -15,9 +27,7 @@ export type Artwork = {
   year: string
   medium: string
   caption: string
-  src: string
-  width: number
-  height: number
+  photos: Photo[]
   sample: boolean
 }
 
@@ -31,6 +41,23 @@ function text(value: unknown, max: number) {
   return value.trim().slice(0, max)
 }
 
+function photoOf(value: unknown): Photo | null {
+  if (!value || typeof value !== "object") return null
+  const record = value as Record<string, unknown>
+  const src = text(record.src, 180)
+  if (!src || !/^\/obras\/[a-zA-Z0-9._-]+$/.test(src)) return null
+  if (typeof record.width !== "number" || typeof record.height !== "number") return null
+  if (!Number.isFinite(record.width) || !Number.isFinite(record.height)) return null
+  if (record.width <= 0 || record.height <= 0) return null
+  return {
+    src,
+    width: Math.round(record.width),
+    height: Math.round(record.height),
+    title: text(record.title, 80) ?? "",
+    caption: text(record.caption, MAX_CAPTION) ?? "",
+  }
+}
+
 function artworkOf(value: unknown): Artwork | null {
   if (!value || typeof value !== "object") return null
   const record = value as Record<string, unknown>
@@ -39,15 +66,18 @@ function artworkOf(value: unknown): Artwork | null {
   const title = text(record.title, 80)
   const year = text(record.year, 12)
   const medium = text(record.medium, 40)
-  const caption = text(record.caption, 400)
-  const src = text(record.src, 180)
+  const caption = text(record.caption, MAX_CAPTION)
   if (!id || !/^[a-zA-Z0-9_-]+$/.test(id)) return null
-  if (room == null || title == null || year == null || medium == null || caption == null || src == null) {
+  if (room == null || title == null || year == null || medium == null || caption == null) return null
+  if (!Array.isArray(record.photos) || record.photos.length < MIN_PHOTOS || record.photos.length > MAX_PHOTOS) {
     return null
   }
-  if (src !== "" && !/^\/obras\/[a-zA-Z0-9._-]+$/.test(src)) return null
-  if (typeof record.width !== "number" || typeof record.height !== "number") return null
-  if (!Number.isFinite(record.width) || !Number.isFinite(record.height)) return null
+  const photos: Photo[] = []
+  for (const item of record.photos) {
+    const photo = photoOf(item)
+    if (!photo) return null
+    photos.push(photo)
+  }
   if (typeof record.sample !== "boolean") return null
   return {
     id,
@@ -56,9 +86,7 @@ function artworkOf(value: unknown): Artwork | null {
     year,
     medium,
     caption,
-    src,
-    width: Math.round(record.width),
-    height: Math.round(record.height),
+    photos,
     sample: record.sample,
   }
 }
@@ -137,9 +165,7 @@ export function blankArtwork(count: number): Artwork {
     year: String(new Date().getFullYear()),
     medium: "Fotografía",
     caption: "",
-    src: "",
-    width: 1200,
-    height: 1500,
+    photos: [],
     sample: false,
   }
 }
