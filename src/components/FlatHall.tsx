@@ -9,7 +9,7 @@ export function EmptyHall() {
         <p className="font-sans text-[11px] tracking-[0.36em] text-brass uppercase">{exhibition.kicker}</p>
         <h1 className="mt-4 font-serif text-5xl font-normal italic">El pasillo está vacío</h1>
         <p className="mt-5 font-sans leading-relaxed font-light text-ivory-dim">
-          Agrega la primera habitación desde el mantenedor, con su nombre, su foto y su descripción.
+          Agrega la primera habitación desde el mantenedor, con su nombre, al menos dos fotos y su descripción.
         </p>
         <a className="brass-btn mt-8 inline-block" href="/mantener">
           Abrir el mantenedor
@@ -33,8 +33,8 @@ export function FlatHall({ fallback = false }: { fallback?: boolean }) {
         </p>
         {fallback && (
           <p className="mx-auto mt-6 max-w-sm font-sans text-sm leading-relaxed text-ivory/60">
-            Este navegador no pudo abrir el pasillo en tres dimensiones. Las salas se recorren hacia abajo, una
-            imagen por pantalla.
+            Este navegador no pudo abrir el pasillo en tres dimensiones. Cada habitación se ve hacia abajo, con
+            sus fotos en un carrusel.
           </p>
         )}
         {hasSamples && (

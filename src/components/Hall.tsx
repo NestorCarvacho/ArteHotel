@@ -1,10 +1,10 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import * as THREE from "three"
 import { useCatalog } from "../data/catalog"
 import { HALL, hallExtent } from "../lib/hall"
 import { usePrefersReducedMotion } from "../lib/motion"
-import { createCarpetTexture, createWoodTexture } from "../lib/textures"
+import { createHallCarpet } from "../lib/textures"
 import { getWalk, publishCameraZ, targetZ } from "../lib/walk"
 import { Door } from "./Door"
 
@@ -37,121 +37,142 @@ function Walker() {
   return null
 }
 
+function EndCarousel({ slides, z }: { slides: string[]; z: number }) {
+  const [index, setIndex] = useState(0)
+  const material = useRef<THREE.MeshBasicMaterial>(null)
+  const group = useRef<THREE.Group>(null)
+  const reduce = usePrefersReducedMotion()
+
+  useEffect(() => {
+    if (reduce || slides.length < 2) return
+    const id = window.setInterval(() => {
+      setIndex((current) => (current + 1) % slides.length)
+    }, 3200)
+    return () => window.clearInterval(id)
+  }, [reduce, slides])
+
+  useEffect(() => {
+    const src = slides[index]
+    if (!src) return
+    const loader = new THREE.TextureLoader()
+    let dropped = false
+    let loaded: THREE.Texture | null = null
+    loader.load(src, (texture) => {
+      if (dropped) {
+        texture.dispose()
+        return
+      }
+      texture.colorSpace = THREE.SRGBColorSpace
+      loaded = texture
+      const mat = material.current
+      if (!mat) {
+        texture.dispose()
+        return
+      }
+      const previous = mat.map
+      mat.map = texture
+      mat.needsUpdate = true
+      if (previous && previous !== texture) previous.dispose()
+    })
+    return () => {
+      dropped = true
+      const mat = material.current
+      if (mat && loaded && mat.map === loaded) {
+        mat.map = null
+        mat.needsUpdate = true
+      }
+      loaded?.dispose()
+    }
+  }, [slides, index])
+
+  useFrame(({ clock }) => {
+    if (!group.current || reduce) return
+    group.current.position.y = 1.62 + Math.sin(clock.elapsedTime * 0.7) * 0.045
+  })
+
+  const width = 1.22
+  const height = 1.68
+  const border = 0.05
+
+  return (
+    <group ref={group} position={[0, 1.62, z]}>
+      <mesh position={[0, height / 2 + border / 2, 0]}>
+        <boxGeometry args={[width + border * 2, border, 0.04]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      <mesh position={[0, -(height / 2 + border / 2), 0]}>
+        <boxGeometry args={[width + border * 2, border, 0.04]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      <mesh position={[-(width / 2 + border / 2), 0, 0]}>
+        <boxGeometry args={[border, height, 0.04]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      <mesh position={[width / 2 + border / 2, 0, 0]}>
+        <boxGeometry args={[border, height, 0.04]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      <mesh position={[0, 0, 0.03]}>
+        <planeGeometry args={[width, height]} />
+        <meshBasicMaterial ref={material} color="#ffffff" side={THREE.DoubleSide} toneMapped={false} />
+      </mesh>
+    </group>
+  )
+}
+
 function Corridor({ onChoose }: { onChoose: (index: number) => void }) {
   const { artworks } = useCatalog()
   const count = artworks.length
   const extent = useMemo(() => hallExtent(count), [count])
-  const maps = useMemo(() => {
-    const wood = createWoodTexture()
-    const carpet = createCarpetTexture()
-    wood.repeat.set(HALL.width / 1.8, extent.length / 1.8)
-    carpet.repeat.set(1, extent.length / 1.6)
-    return { wood, carpet }
-  }, [extent.length])
+  const slides = useMemo(() => artworks.flatMap((artwork) => artwork.photos.map((photo) => photo.src)), [artworks])
+  const carpet = useMemo(() => createHallCarpet(), [])
 
   useEffect(() => {
-    return () => {
-      maps.wood.dispose()
-      maps.carpet.dispose()
-    }
-  }, [maps])
+    return () => carpet.dispose()
+  }, [carpet])
 
   const gl = useThree((state) => state.gl)
   useEffect(() => {
-    const max = gl.capabilities.getMaxAnisotropy()
-    maps.wood.anisotropy = max
-    maps.carpet.anisotropy = max
-    maps.wood.needsUpdate = true
-    maps.carpet.needsUpdate = true
-  }, [gl, maps])
+    carpet.wrapS = THREE.RepeatWrapping
+    carpet.wrapT = THREE.RepeatWrapping
+    carpet.repeat.set(1, extent.length / HALL.width)
+    carpet.anisotropy = gl.capabilities.getMaxAnisotropy()
+    carpet.needsUpdate = true
+  }, [gl, carpet, extent.length])
 
-  const pilasters = useMemo(() => {
-    const zs: number[] = []
-    for (let i = 0; i <= count; i += 1) {
-      zs.push(HALL.firstDoor + HALL.spacing / 2 - i * HALL.spacing)
-    }
-    return zs
-  }, [count])
-
-  const trim = "#cbb89a"
-  const wall = "#e4d8c7"
+  const wall = "#050505"
 
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, extent.center]}>
-        <planeGeometry args={[HALL.width + 0.2, extent.length]} />
-        <meshStandardMaterial map={maps.wood} roughness={0.62} metalness={0} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, extent.center]}>
-        <planeGeometry args={[1.16, extent.length - 0.4]} />
-        <meshStandardMaterial map={maps.carpet} roughness={1} metalness={0} />
+        <planeGeometry args={[HALL.width, extent.length]} />
+        <meshStandardMaterial map={carpet} roughness={1} metalness={0} />
       </mesh>
 
       {([-1, 1] as const).map((side) => (
-        <group key={side}>
-          <mesh position={[side * (HALL.width / 2 + 0.08), HALL.height / 2, extent.center]}>
-            <boxGeometry args={[0.16, HALL.height, extent.length]} />
-            <meshStandardMaterial color={wall} roughness={0.96} />
-          </mesh>
-          <mesh position={[side * (HALL.width / 2 - 0.02), 0.52, extent.center]}>
-            <boxGeometry args={[0.035, 0.9, extent.length]} />
-            <meshStandardMaterial color="#d7c9b6" roughness={0.94} />
-          </mesh>
-          <mesh position={[side * (HALL.width / 2 - 0.028), 0.08, extent.center]}>
-            <boxGeometry args={[0.055, 0.16, extent.length]} />
-            <meshStandardMaterial color="#3e342c" roughness={0.8} />
-          </mesh>
-          <mesh position={[side * (HALL.width / 2 - 0.03), 1.02, extent.center]}>
-            <boxGeometry args={[0.05, 0.05, extent.length]} />
-            <meshStandardMaterial color={trim} roughness={0.74} />
-          </mesh>
-          <mesh position={[side * (HALL.width / 2 - 0.03), HALL.height - 0.07, extent.center]}>
-            <boxGeometry args={[0.055, 0.08, extent.length]} />
-            <meshStandardMaterial color={trim} roughness={0.74} />
-          </mesh>
-          {pilasters.map((z) => (
-            <mesh key={z} position={[side * (HALL.width / 2 - 0.035), HALL.height / 2, z]}>
-              <boxGeometry args={[0.07, HALL.height, 0.16]} />
-              <meshStandardMaterial color="#efe4d4" roughness={0.9} />
-            </mesh>
-          ))}
-        </group>
+        <mesh key={side} position={[side * (HALL.width / 2 + 0.08), HALL.height / 2, extent.center]}>
+          <boxGeometry args={[0.16, HALL.height, extent.length]} />
+          <meshBasicMaterial color={wall} />
+        </mesh>
       ))}
 
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, HALL.height, extent.center]}>
         <planeGeometry args={[HALL.width, extent.length]} />
-        <meshStandardMaterial color="#d5c9b7" roughness={1} />
+        <meshBasicMaterial color={wall} />
       </mesh>
-
-      {pilasters.map((z) => (
-        <mesh key={`light-${z}`} position={[0, HALL.height - 0.015, z]} rotation={[Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[0.055, 20]} />
-          <meshStandardMaterial color="#fff4e4" emissive="#ffe0b8" emissiveIntensity={1.35} />
-        </mesh>
-      ))}
 
       <mesh position={[0, HALL.height / 2, extent.end]}>
         <boxGeometry args={[HALL.width + 0.5, HALL.height + 0.2, 0.24]} />
-        <meshStandardMaterial color="#d9cebd" roughness={1} />
+        <meshBasicMaterial color={wall} />
       </mesh>
-      <mesh position={[0, 1.62, extent.end + 0.14]}>
-        <planeGeometry args={[1.22, 2.16]} />
-        <meshStandardMaterial color="#ffd7aa" emissive="#ffc184" emissiveIntensity={0.9} roughness={0.45} />
-      </mesh>
-      {([-0.36, 0.36] as const).map((x) => (
-        <mesh key={x} position={[x, 1.62, extent.end + 0.18]}>
-          <planeGeometry args={[0.46, 2.2]} />
-          <meshStandardMaterial color="#f7f1e6" transparent opacity={0.38} roughness={1} />
-        </mesh>
-      ))}
-      <pointLight position={[0, 1.7, extent.end + 1.1]} color="#ffc48a" intensity={18} distance={12} decay={2} />
+
+      <EndCarousel slides={slides} z={extent.end + 0.85} />
 
       {artworks.map((artwork, index) => (
-        <Door key={artwork.id} index={index} room={artwork.room} onChoose={onChoose} />
+        <Door key={artwork.id} index={index} onChoose={onChoose} />
       ))}
 
-      <hemisphereLight color="#fff6ea" groundColor="#7a5a46" intensity={1.05} />
-      <ambientLight color="#ffe6cc" intensity={0.34} />
+      <ambientLight color="#ffffff" intensity={0.85} />
     </group>
   )
 }
@@ -180,12 +201,12 @@ export function Hall({ onChoose }: { onChoose: (index: number) => void }) {
       }}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping
-        gl.toneMappingExposure = 1.02
-        gl.setClearColor("#2a241e")
+        gl.toneMappingExposure = 1
+        gl.setClearColor("#000000")
       }}
     >
-      <color attach="background" args={["#2a241e"]} />
-      <fog attach="fog" args={["#2a241e", 12, 46]} />
+      <color attach="background" args={["#000000"]} />
+      <fog attach="fog" args={["#000000", 14, 42]} />
       <Walker />
       <Corridor onChoose={onChoose} />
     </Canvas>

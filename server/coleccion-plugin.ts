@@ -75,15 +75,25 @@ function validateCatalog(value: unknown) {
     if (!item || typeof item !== "object") return "Una habitación está incompleta."
     const artwork = item as Record<string, unknown>
     const id = text(artwork.id, 40)
-    const src = text(artwork.src, 180)
     if (!id || !/^[a-zA-Z0-9_-]+$/.test(id) || seen.has(id)) return "Hay una habitación repetida o sin identificador."
     seen.add(id)
     if (text(artwork.room, 24) == null || text(artwork.title, 80) == null) return "Falta el nombre de una habitación."
-    if (text(artwork.year, 12) == null || text(artwork.medium, 40) == null || text(artwork.caption, 400) == null) {
+    if (text(artwork.year, 12) == null || text(artwork.medium, 40) == null || text(artwork.caption, 300) == null) {
       return "Falta la descripción de una habitación."
     }
-    if (src == null || (src !== "" && !/^\/obras\/[a-zA-Z0-9._-]+$/.test(src))) return "La foto de una habitación no es válida."
-    if (typeof artwork.width !== "number" || typeof artwork.height !== "number") return "Falta el tamaño de una foto."
+    if (!Array.isArray(artwork.photos) || artwork.photos.length < 2 || artwork.photos.length > 30) {
+      return "Cada habitación necesita entre 2 y 30 fotos."
+    }
+    for (const item of artwork.photos) {
+      if (!item || typeof item !== "object") return "Una foto está incompleta."
+      const photo = item as Record<string, unknown>
+      const src = text(photo.src, 180)
+      if (!src || !/^\/obras\/[a-zA-Z0-9._-]+$/.test(src)) return "La foto de una habitación no es válida."
+      if (typeof photo.width !== "number" || typeof photo.height !== "number" || photo.width <= 0 || photo.height <= 0) {
+        return "Falta el tamaño de una foto."
+      }
+      if (text(photo.title, 80) == null || text(photo.caption, 300) == null) return "Falta el título o la descripción de una foto."
+    }
     if (typeof artwork.sample !== "boolean") return "Una habitación está incompleta."
   }
   return null

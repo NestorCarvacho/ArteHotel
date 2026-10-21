@@ -15,8 +15,10 @@ export function Hud({ onEnter }: HudProps) {
 
   useEffect(() => {
     if (!artwork) return
+    const cover = artwork.photos[0]
+    if (!cover) return
     const image = new Image()
-    image.src = artwork.src
+    image.src = cover.src
   }, [artwork])
 
   if (!artwork) return null

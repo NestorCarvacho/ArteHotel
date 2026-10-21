@@ -99,6 +99,54 @@ export function createCarpetTexture() {
   return texture
 }
 
+export function createHallCarpet() {
+  const size = 512
+  const canvas = document.createElement("canvas")
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext("2d")
+  if (!ctx) throw new Error("No se pudo preparar la alfombra")
+
+  const rand = mulberry32(19)
+  ctx.fillStyle = "#7a1828"
+  ctx.fillRect(0, 0, size, size)
+
+  for (let y = 0; y < size; y += 1) {
+    const tone = 96 + Math.sin(y * 0.37) * 10 + (y % 5 === 0 ? -8 : 0)
+    ctx.fillStyle = `rgb(${tone + 40}, ${Math.max(12, tone * 0.22)}, ${Math.max(18, tone * 0.32)})`
+    ctx.fillRect(0, y, size, 1)
+  }
+
+  ctx.lineWidth = 1.15
+  for (let i = 0; i < 1600; i += 1) {
+    const x = rand() * size
+    const y = rand() * size
+    const len = 5 + rand() * 16
+    const ang = rand() * Math.PI
+    const x2 = x + Math.cos(ang) * len
+    const y2 = y + Math.sin(ang) * len * 0.45
+    ctx.strokeStyle = rand() > 0.5 ? "rgba(255, 214, 206, 0.13)" : "rgba(42, 0, 12, 0.28)"
+    const draw = (ox: number, oy: number) => {
+      ctx.beginPath()
+      ctx.moveTo(x + ox, y + oy)
+      ctx.lineTo(x2 + ox, y2 + oy)
+      ctx.stroke()
+    }
+    draw(0, 0)
+    if (x < 18 || x2 < 18) draw(size, 0)
+    if (x > size - 18 || x2 > size - 18) draw(-size, 0)
+    if (y < 18 || y2 < 18) draw(0, size)
+    if (y > size - 18 || y2 > size - 18) draw(0, -size)
+  }
+
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  texture.wrapS = THREE.RepeatWrapping
+  texture.wrapT = THREE.RepeatWrapping
+  texture.anisotropy = 8
+  return texture
+}
+
 export function createPlaqueTexture(label: string) {
   const canvas = document.createElement("canvas")
   canvas.width = 512
